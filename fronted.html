@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Reservation System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and overrides */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Hide default select arrow for custom styling */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+        /* Style for custom select arrow */
+        select.custom-select-arrow {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%236B7280' d='M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5rem 1.5rem;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        /* Confirmation animation */
+        .confirmation-animation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #4CAF50; /* Green */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0);
+            animation: popIn 0.3s forwards cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .checkmark-circle svg {
+            width: 50px;
+            height: 50px;
+            color: white;
+            stroke-width: 3;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawCheck 0.6s 0.3s forwards;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes drawCheck {
+            to { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-3xl transform transition-all duration-300">
+        <h1 class="text-4xl font-extrabold text-center text-indigo-800 mb-8">
+            Radhika AirLines
+        </h1>
+
+        <!-- Flight Image -->
+        <div class="mb-8 rounded-lg overflow-hidden shadow-lg">
+            <img src="download.jpeg" alt="Flight Banner" class="w-full h-48 object-cover">
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center mb-8 border-b border-gray-200">
+            <button id="searchTab" class="px-6 py-3 text-lg font-semibold rounded-t-lg transition-colors duration-200 bg-indigo-600 text-white shadow-md">
+                Search & Book
+            </button>
+            <button id="myBookingsTab" class="px-6 py-3 text-lg font-semibold rounded-t-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100">
+                My Bookings
+            </button>
+        </div>
+
+        <!-- Message Display -->
+        <div id="messageDisplay" class="p-4 rounded-lg text-center hidden mb-6">
+            <p id="messageText" class="font-semibold"></p>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden flex justify-center items-center mb-6">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="ml-3 text-indigo-700 font-medium">Loading...</span>
+        </div>
+
+        <!-- Content Area -->
+        <div id="contentArea">
+            <!-- Search & Book View -->
+            <div id="searchView">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- From Airport Selection -->
+                    <div class="relative">
+                        <label for="fromAirport" class="block text-lg font-semibold text-gray-700 mb-2">
+                            From 
+                        </label>
+                        <select id="fromAirport" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base custom-select-arrow">
+                            <option value="" disabled selected>Select Origin</option>
+                        </select>
+                    </div>
+
+                    <!-- To Airport Selection -->
+                    <div class="relative">
+                        <label for="toAirport" class="block text-lg font-semibold text-gray-700 mb-2">
+                            To 
+                        </label>
+                        <select id="toAirport" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base custom-select-arrow">
+                            <option value="" disabled selected>Select Destination</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Find Flight Button -->
+                <button id="findFlightBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 mb-6">
+                    Find Shortest Flight
+                </button>
+
+                <!-- Shortest Path Results -->
+                <div id="shortestPathResults" class="hidden bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner mb-6">
+                    <h2 class="text-2xl font-bold text-indigo-700 mb-4">Shortest Route Details:</h2>
+                    <p class="text-xl text-gray-800 mb-3">
+                        <span class="font-semibold">Total Distance:</span> <span id="totalDistance"></span> km
+                    </p>
+                    <div class="text-lg text-gray-700">
+                        <span class="font-semibold">Path:</span>
+                        <div id="flightPath" class="flex flex-wrap items-center mt-2">
+                            <!-- Path nodes will be inserted here -->
+                        </div>
+                    </div>
+                    <button id="proceedToBookingBtn" class="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50">
+                        Proceed to Booking
+                    </button>
+                </div>
+            </div>
+
+            <!-- Booking View -->
+            <div id="bookingView" class="hidden">
+                <h2 class="text-3xl font-bold text-indigo-700 mb-6 text-center">Book Your Flight</h2>
+                <div id="bookingDetailsSummary" class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner mb-6">
+                    <p class="text-lg text-gray-800 mb-2">
+                        <span class="font-semibold">Selected Route:</span> <span id="bookingRouteSummary"></span>
+                    </p>
+                    <p class="text-lg text-gray-800 mb-4">
+                        <span class="font-semibold">Total Distance:</span> <span id="bookingDistanceSummary"></span> km
+                    </p>
+                    <div class="mb-4">
+                        <label for="passengerName" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Passenger Name (Full)
+                        </label>
+                        <input type="text" id="passengerName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base" placeholder="e.g., John Doe">
+                    </div>
+                    <div class="mb-4">
+                        <label for="passengerEmail" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Email Address (Gmail only)
+                        </label>
+                        <input type="email" id="passengerEmail" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base" placeholder="e.g., john.doe@gmail.com">
+                    </div>
+                    <div class="mb-4">
+                        <label for="passengerGender" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Gender
+                        </label>
+                        <select id="passengerGender" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base custom-select-arrow">
+                            <option value="" disabled selected>Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="passengerDOB" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Date of Birth
+                        </label>
+                        <input type="date" id="passengerDOB" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base">
+                    </div>
+                    <div class="mb-4">
+                        <label for="passengerPhone" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Phone Number (10 digits)
+                        </label>
+                        <input type="tel" id="passengerPhone" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base" placeholder="e.g., 9876543210" pattern="[0-9]{10}">
+                    </div>
+                    <div class="mb-4">
+                        <label for="travelDate" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Travel Date
+                        </label>
+                        <input type="date" id="travelDate" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base">
+                    </div>
+                    <div class="mb-6">
+                        <label for="numSeats" class="block text-lg font-semibold text-gray-700 mb-2">
+                            Number of Seats
+                        </label>
+                        <input type="number" id="numSeats" value="1" min="1" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base">
+                    </div>
+                    <button id="confirmBookingBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
+                        Confirm Booking
+                    </button>
+                </div>
+            </div>
+
+            <!-- My Bookings View -->
+            <div id="myBookingsView" class="hidden">
+                <h2 class="text-3xl font-bold text-indigo-700 mb-6 text-center">My Bookings</h2>
+                <div class="mb-6">
+                    <label for="pnrInput" class="block text-lg font-semibold text-gray-700 mb-2">
+                        Enter PNR Number
+                    </label>
+                    <div class="flex gap-2">
+                        <input type="text" id="pnrInput" class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-gray-800 text-base" placeholder="e.g., ABC123">
+                        <button id="checkBookingBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+                            Check Status
+                        </button>
+                    </div>
+                </div>
+
+                <div id="currentBookingDetails" class="hidden bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner">
+                    <h3 class="text-2xl font-bold text-indigo-700 mb-4">Booking Details:</h3>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">PNR Number:</span> <span id="displayPnrNumber"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Passenger Name:</span> <span id="displayPassengerName"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Email:</span> <span id="displayEmail"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Gender:</span> <span id="displayGender"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Date of Birth:</span> <span id="displayDOB"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Phone Number:</span> <span id="displayPhone"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Travel Date:</span> <span id="displayTravelDate"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Seats:</span> <span id="displaySeats"></span></p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Total Distance:</span> <span id="displayTotalDistance"></span> km</p>
+                    <p class="text-lg text-gray-800 mb-2"><span class="font-semibold">Status:</span>
+                        <span id="displayStatus" class="ml-2 px-3 py-1 rounded-full text-sm font-medium"></span>
+                    </p>
+                    <div class="text-lg text-gray-700 mb-4">
+                        <span class="font-semibold">Path:</span>
+                        <div id="displayFlightPath" class="flex flex-wrap items-center mt-2">
+                            <!-- Path nodes will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                        <button id="cancelBookingBtn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Cancel Booking
+                        </button>
+                        <button id="toggleUpdateFormBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-yellow-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Update Booking
+                        </button>
+                    </div>
+
+                    <div id="updateForm" class="hidden mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <h4 class="text-xl font-bold text-yellow-800 mb-3">Update Passenger Info</h4>
+                        <div class="mb-4">
+                            <label for="updateName" class="block text-md font-semibold text-gray-700 mb-1">
+                                New Passenger Name
+                            </label>
+                            <input type="text" id="updateName" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm" placeholder="Enter new name">
+                        </div>
+                        <div class="mb-4">
+                            <label for="updateEmail" class="block text-md font-semibold text-gray-700 mb-1">
+                                New Email Address (Gmail only)
+                            </label>
+                            <input type="email" id="updateEmail" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm" placeholder="e.g., john.doe@gmail.com" pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$">
+                        </div>
+                        <div class="mb-4">
+                            <label for="updateGender" class="block text-md font-semibold text-gray-700 mb-1">
+                                Gender
+                            </label>
+                            <select id="updateGender" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm custom-select-arrow">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="updateDOB" class="block text-md font-semibold text-gray-700 mb-1">
+                                Date of Birth
+                            </label>
+                            <input type="date" id="updateDOB" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm">
+                        </div>
+                        <div class="mb-4">
+                            <label for="updatePhone" class="block text-md font-semibold text-gray-700 mb-1">
+                                Phone Number (10 digits)
+                            </label>
+                            <input type="tel" id="updatePhone" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm" placeholder="e.g., 9876543210" pattern="[0-9]{10}">
+                        </div>
+                        <div class="mb-4">
+                            <label for="updateTravelDate" class="block text-md font-semibold text-gray-700 mb-1">
+                                Travel Date
+                            </label>
+                            <input type="date" id="updateTravelDate" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-yellow-500 focus:border-yellow-500 text-gray-800 text-sm">
+                        </div>
+                        <button id="applyUpdateBtn" class="w-full bg-yellow-700 hover:bg-yellow-800 text-white font-bold py-2 px-4 rounded-lg shadow-md transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-yellow-500 focus:ring-opacity-50">
+                            Apply Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer/Note
+        <div class="mt-8 text-center text-gray-500 text-sm">
+            <p>This system uses a simulated backend for demonstration purposes.</p>
+            <p>For a production environment, a robust DBMS and secure API practices would be implemented.</p>
+        </div>
+    </div> -->
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modalMessage" class="text-xl font-semibold text-gray-800 mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="modalConfirmBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200">Yes</button>
+                <button id="modalCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-200">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Confirmation Modal with Animation -->
+    <div id="bookingConfirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div id="bookingConfirmationContent" class="confirmation-animation">
+                <div class="checkmark-circle">
+                    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-green-700">Booking Confirmed!</h3>
+                <p class="text-lg text-gray-800">Your PNR Number: <span id="finalPnrNumber" class="font-bold"></span></p>
+            </div>
+            <button id="closeBookingConfirmationModal" class="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300">Close</button>
+        </div>
+    </div>
+
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000'; // Ensure your Flask backend is running on this port
+
+        // Get DOM elements
+        const searchTab = document.getElementById('searchTab');
+        const myBookingsTab = document.getElementById('myBookingsTab');
+        const searchView = document.getElementById('searchView');
+        const bookingView = document.getElementById('bookingView');
+        const myBookingsView = document.getElementById('myBookingsView');
+        const messageDisplay = document.getElementById('messageDisplay');
+        const messageText = document.getElementById('messageText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const fromAirportSelect = document.getElementById('fromAirport'); // Renamed
+        const toAirportSelect = document.getElementById('toAirport');     // Renamed
+        const findFlightBtn = document.getElementById('findFlightBtn');
+        const shortestPathResults = document.getElementById('shortestPathResults');
+        const totalDistanceSpan = document.getElementById('totalDistance');
+        const flightPathDiv = document.getElementById('flightPath');
+        const proceedToBookingBtn = document.getElementById('proceedToBookingBtn');
+
+        const bookingRouteSummary = document.getElementById('bookingRouteSummary');
+        const bookingDistanceSummary = document.getElementById('bookingDistanceSummary');
+        const passengerNameInput = document.getElementById('passengerName');
+        const passengerEmailInput = document.getElementById('passengerEmail');
+        const passengerGenderSelect = document.getElementById('passengerGender');
+        const passengerDOBInput = document.getElementById('passengerDOB');
+        const passengerPhoneInput = document.getElementById('passengerPhone');
+        const travelDateInput = document.getElementById('travelDate'); // New
+        const numSeatsInput = document.getElementById('numSeats');
+        const confirmBookingBtn = document.getElementById('confirmBookingBtn');
+
+        const pnrInput = document.getElementById('pnrInput'); // Renamed
+        const checkBookingBtn = document.getElementById('checkBookingBtn');
+        const currentBookingDetails = document.getElementById('currentBookingDetails');
+        const displayPnrNumber = document.getElementById('displayPnrNumber'); // Renamed
+        const displayPassengerName = document.getElementById('displayPassengerName');
+        const displayEmail = document.getElementById('displayEmail');
+        const displayGender = document.getElementById('displayGender');
+        const displayDOB = document.getElementById('displayDOB');
+        const displayPhone = document.getElementById('displayPhone');
+        const displayTravelDate = document.getElementById('displayTravelDate'); // New
+        const displaySeats = document.getElementById('displaySeats');
+        const displayTotalDistance = document.getElementById('displayTotalDistance');
+        const displayStatus = document.getElementById('displayStatus');
+        const displayFlightPath = document.getElementById('displayFlightPath');
+        const cancelBookingBtn = document.getElementById('cancelBookingBtn');
+        const toggleUpdateFormBtn = document.getElementById('toggleUpdateFormBtn');
+        const updateForm = document.getElementById('updateForm');
+        const updateNameInput = document.getElementById('updateName');
+        const updateEmailInput = document.getElementById('updateEmail');
+        const updateGenderSelect = document.getElementById('updateGender');
+        const updateDOBInput = document.getElementById('updateDOB');
+        const updatePhoneInput = document.getElementById('updatePhone');
+        const updateTravelDateInput = document.getElementById('updateTravelDate'); // New
+        const applyUpdateBtn = document.getElementById('applyUpdateBtn');
+
+        const confirmationModal = document.getElementById('confirmationModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
+
+        const bookingConfirmationModal = document.getElementById('bookingConfirmationModal');
+        const finalPnrNumberSpan = document.getElementById('finalPnrNumber'); // Renamed
+        const closeBookingConfirmationModalBtn = document.getElementById('closeBookingConfirmationModal');
+
+
+        let airportsData = [];
+        let currentShortestPathResult = null; // Stores the result from shortest_path API call
+        let currentBookingDetailsData = null; // Stores the details of the currently viewed booking
+
+        // --- Utility Functions ---
+
+        /**
+         * Shows a message to the user.
+         * @param {string} msg - The message text.
+         * @param {boolean} isSuccess - True for success (green), false for error (red).
+         */
+        function showMessage(msg, isSuccess) {
+            messageText.textContent = msg;
+            messageDisplay.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            if (isSuccess) {
+                messageDisplay.classList.add('bg-green-100', 'text-green-800');
+            } else {
+                messageDisplay.classList.add('bg-red-100', 'text-red-800');
+            }
+            messageDisplay.classList.remove('hidden');
+        }
+
+        function hideMessage() {
+            messageDisplay.classList.add('hidden');
+        }
+
+        function showLoading() {
+            loadingIndicator.classList.remove('hidden');
+            hideMessage();
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.add('hidden');
+        }
+
+        /**
+         * Custom confirmation dialog (replaces window.confirm)
+         * @param {string} message - The message to display.
+         * @returns {Promise<boolean>} - Resolves true if confirmed, false if cancelled.
+         */
+        function customConfirm(message) {
+            return new Promise((resolve) => {
+                modalMessage.textContent = message;
+                confirmationModal.classList.remove('hidden');
+
+                const confirmHandler = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', confirmHandler);
+                    modalCancelBtn.removeEventListener('click', cancelHandler);
+                    resolve(true);
+                };
+
+                const cancelHandler = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmBtn.removeEventListener('click', confirmHandler);
+                    modalCancelBtn.removeEventListener('click', cancelHandler);
+                    resolve(false);
+                };
+
+                modalConfirmBtn.addEventListener('click', confirmHandler);
+                modalCancelBtn.addEventListener('click', cancelHandler);
+            });
+        }
+
+
+        /**
+         * Fetches data from the API.
+         * @param {string} endpoint - The API endpoint (e.g., '/airports').
+         * @param {object} options - Fetch API options (method, headers, body).
+         * @returns {Promise<object>} - The JSON response data.
+         * @throws {Error} - If the API call fails or returns an error.
+         */
+        async function fetchData(endpoint, options = {}) {
+            showLoading();
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || `API Error: ${response.status}`);
+                }
+                return data;
+            } catch (error) {
+                console.error(`Error fetching from ${endpoint}:`, error);
+                // Added specific message for network errors
+                if (error.message.includes('Failed to fetch')) {
+                    showMessage(`Error: Could not connect to the backend server. Please ensure the Python Flask backend is running at ${API_BASE_URL}.`, false);
+                } else {
+                    showMessage(`Error: ${error.message}`, false);
+                }
+                throw error; // Re-throw to be caught by specific handlers
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * Gets airport name from ID.
+         * @param {string} id - Airport ID (e.g., 'DEL').
+         * @returns {string} - Airport name (e.g., 'Delhi (DEL)').
+         */
+        function getAirportName(id) {
+            const airport = airportsData.find(a => a.id === id);
+            return airport ? `${airport.name} (${airport.id})` : id;
+        }
+
+        /**
+         * Renders the flight path visually.
+         * @param {HTMLElement} container - The DOM element to render the path into.
+         * @param {string[]} path - An array of airport IDs representing the path.
+         */
+        function renderFlightPath(container, path) {
+            container.innerHTML = ''; // Clear previous path
+            if (!path || path.length === 0) return;
+
+            path.forEach((node, index) => {
+                const span = document.createElement('span');
+                span.className = 'bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-medium mr-2 mb-2';
+                span.textContent = getAirportName(node);
+                container.appendChild(span);
+
+                if (index < path.length - 1) {
+                    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    svg.setAttribute("class", "w-5 h-5 text-gray-500 mr-2 mb-2");
+                    svg.setAttribute("fill", "none");
+                    svg.setAttribute("stroke", "currentColor");
+                    svg.setAttribute("viewBox", "0 0 24 24");
+                    const pathElem = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    pathElem.setAttribute("stroke-linecap", "round");
+                    pathElem.setAttribute("stroke-linejoin", "round");
+                    pathElem.setAttribute("stroke-width", "2");
+                    pathElem.setAttribute("d", "M17 8l4 4m0 0l-4 4m4-4H3");
+                    svg.appendChild(pathElem);
+                    container.appendChild(svg);
+                }
+            });
+        }
+
+        // --- View Management ---
+
+        function showView(viewId) {
+            searchView.classList.add('hidden');
+            bookingView.classList.add('hidden');
+            myBookingsView.classList.add('hidden');
+
+            searchTab.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+            searchTab.classList.add('text-gray-700', 'hover:bg-gray-100');
+            myBookingsTab.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+            myBookingsTab.classList.add('text-gray-700', 'hover:bg-gray-100');
+
+            hideMessage();
+            hideLoading(); // Hide loading when switching views
+
+            if (viewId === 'search') {
+                searchView.classList.remove('hidden');
+                searchTab.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+                searchTab.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                shortestPathResults.classList.add('hidden'); // Hide results when coming back to search
+            } else if (viewId === 'booking') {
+                bookingView.classList.remove('hidden');
+                searchTab.classList.add('bg-indigo-600', 'text-white', 'shadow-md'); // Keep search tab active if booking from search
+                searchTab.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                // Populate booking summary
+                if (currentShortestPathResult) {
+                    bookingRouteSummary.textContent = currentShortestPathResult.path.map(getAirportName).join(' → ');
+                    bookingDistanceSummary.textContent = currentShortestPathResult.total_distance;
+                } else {
+                    bookingRouteSummary.textContent = 'N/A';
+                    bookingDistanceSummary.textContent = 'N/A';
+                }
+            } else if (viewId === 'my_bookings') {
+                myBookingsView.classList.remove('hidden');
+                myBookingsTab.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+                myBookingsTab.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                currentBookingDetails.classList.add('hidden'); // Hide details when first entering my bookings
+                updateForm.classList.add('hidden'); // Hide update form
+            }
+        }
+
+        // --- Event Handlers ---
+
+        searchTab.addEventListener('click', () => showView('search'));
+        myBookingsTab.addEventListener('click', () => showView('my_bookings'));
+
+        // Initial fetch for airports
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const data = await fetchData('/airports');
+                airportsData = data;
+                airportsData.forEach(airport => {
+                    const option1 = document.createElement('option');
+                    option1.value = airport.id;
+                    option1.textContent = `${airport.name} (${airport.id})`;
+                    fromAirportSelect.appendChild(option1); // Changed to fromAirportSelect
+
+                    const option2 = document.createElement('option');
+                    option2.value = airport.id;
+                    option2.textContent = `${airport.name} (${airport.id})`;
+                    toAirportSelect.appendChild(option2); // Changed to toAirportSelect
+                });
+                showMessage('Airports loaded successfully!', true);
+            } catch (error) {
+                // Error message already handled by fetchData
+                // Add a specific console log for clarity on backend status
+                console.error("Please ensure your Python Flask backend is running at " + API_BASE_URL);
+            }
+        });
+
+        // Find Shortest Flight
+        findFlightBtn.addEventListener('click', async () => {
+            const from_airport = fromAirportSelect.value; // Renamed
+            const to_airport = toAirportSelect.value;     // Renamed
+
+            if (!from_airport || !to_airport) {
+                showMessage('Please select both origin and destination airports.', false);
+                shortestPathResults.classList.add('hidden');
+                return;
+            }
+            if (from_airport === to_airport) {
+                showMessage('Origin and destination airports cannot be the same.', false);
+                shortestPathResults.classList.add('hidden');
+                return;
+            }
+
+            // Show loading animation for 3 seconds
+            showLoading();
+            // Using setTimeout to simulate network delay for animation visibility
+            await new Promise(resolve => setTimeout(resolve, 3000)); 
+
+            try {
+                const data = await fetchData('/shortest_path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ from_airport, to_airport }), // Renamed fields
+                });
+
+                currentShortestPathResult = data; // Store the result
+
+                if (data.total_distance === 0 || data.path.length === 0) {
+                    showMessage(`No direct or connecting flights found between ${getAirportName(from_airport)} and ${getAirportName(to_airport)}.`, false);
+                    shortestPathResults.classList.add('hidden');
+                } else {
+                    totalDistanceSpan.textContent = data.total_distance;
+                    renderFlightPath(flightPathDiv, data.path);
+                    shortestPathResults.classList.remove('hidden');
+                    showMessage(`Shortest path found! Total distance: ${data.total_distance} km`, true);
+                }
+            } catch (error) {
+                // Error message handled by fetchData
+                shortestPathResults.classList.add('hidden');
+            } finally {
+                hideLoading(); // Ensure loading is hidden even if error occurs
+            }
+        });
+
+        // Proceed to Booking
+        proceedToBookingBtn.addEventListener('click', () => {
+            if (currentShortestPathResult && currentShortestPathResult.path && currentShortestPathResult.path.length > 0) {
+                showView('booking');
+            } else {
+                showMessage('Please find a flight path first.', false);
+            }
+        });
+
+        // Client-side validation functions
+        function isValidGmail(email) {
+            return /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
+        }
+
+        function isValidPhone(phone) {
+            return /^\d{10}$/.test(phone);
+        }
+
+        function isValidDateFormat(dateString) {
+            return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+        }
+
+        // Confirm Booking
+        confirmBookingBtn.addEventListener('click', async () => {
+            const passengerName = passengerNameInput.value.trim();
+            const passengerEmail = passengerEmailInput.value.trim();
+            const gender = passengerGenderSelect.value;
+            const date_of_birth = passengerDOBInput.value;
+            const phone_number = passengerPhoneInput.value.trim();
+            const travel_date = travelDateInput.value; // New
+            const seats = parseInt(numSeatsInput.value, 10);
+
+            // Client-side validation
+            if (!passengerName || !passengerEmail || !gender || !date_of_birth || !phone_number || !travel_date || isNaN(seats) || seats <= 0) {
+                showMessage('Please fill in all required passenger details and select at least 1 seat.', false);
+                return;
+            }
+            if (!isValidGmail(passengerEmail)) {
+                showMessage('Invalid email format. Please use a Gmail address (e.g., example@gmail.com).', false);
+                return;
+            }
+            if (!isValidPhone(phone_number)) {
+                showMessage('Invalid phone number. Please enter a 10-digit number.', false);
+                return;
+            }
+            if (!isValidDateFormat(date_of_birth)) {
+                showMessage('Invalid Date of Birth format. Please use YYYY-MM-DD.', false);
+                return;
+            }
+            if (!isValidDateFormat(travel_date)) {
+                showMessage('Invalid Travel Date format. Please use YYYY-MM-DD.', false);
+                return;
+            }
+            // Check if travel date is in the future
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+            const selectedTravelDate = new Date(travel_date);
+            selectedTravelDate.setHours(0, 0, 0, 0);
+            if (selectedTravelDate < today) {
+                showMessage('Travel date cannot be in the past.', false);
+                return;
+            }
+
+
+            if (!currentShortestPathResult || currentShortestPathResult.total_distance === 0) {
+                showMessage('No valid flight path selected to book.', false);
+                return;
+            }
+
+            try {
+                const data = await fetchData('/book_flight', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        passenger_name: passengerName,
+                        email: passengerEmail,
+                        gender: gender,
+                        date_of_birth: date_of_birth,
+                        phone_number: phone_number,
+                        travel_date: travel_date, // Send new field
+                        seats: seats,
+                        path: currentShortestPathResult.path,
+                        flight_segments: currentShortestPathResult.flight_segments,
+                        total_distance: currentShortestPathResult.total_distance,
+                    }),
+                });
+
+                // Show animated confirmation modal
+                finalPnrNumberSpan.textContent = data.pnr_number; // Renamed
+                bookingConfirmationModal.classList.remove('hidden');
+
+                // Clear booking form after successful booking
+                passengerNameInput.value = '';
+                passengerEmailInput.value = '';
+                passengerGenderSelect.value = '';
+                passengerDOBInput.value = '';
+                passengerPhoneInput.value = '';
+                travelDateInput.value = ''; // Clear new field
+                numSeatsInput.value = 1;
+
+                // Optionally, switch to my bookings view after a short delay
+                setTimeout(() => {
+                    bookingConfirmationModal.classList.add('hidden');
+                    currentBookingDetailsData = data.booking_details; // Store for immediate display
+                    pnrInput.value = data.pnr_number; // Pre-fill for convenience // Renamed
+                    showView('my_bookings'); // Switch to my bookings view
+                    displayBookingDetails(currentBookingDetailsData); // Display the newly booked flight details
+                    showMessage(`Booking successful! Your PNR Number: ${data.pnr_number}`, true); // Renamed
+                }, 2000); // Wait 2 seconds for animation
+
+
+            } catch (error) {
+                // Error message handled by fetchData
+            }
+        });
+
+        // Close Booking Confirmation Modal
+        closeBookingConfirmationModalBtn.addEventListener('click', () => {
+            bookingConfirmationModal.classList.add('hidden');
+            // If user closes manually, ensure we still switch to my bookings
+            if (currentBookingDetailsData) {
+                pnrInput.value = currentBookingDetailsData.pnr_number; // Renamed
+                showView('my_bookings');
+                displayBookingDetails(currentBookingDetailsData);
+            }
+        });
+
+
+        // Check Booking Status
+        checkBookingBtn.addEventListener('click', async () => {
+            const pnrNumber = pnrInput.value.trim().toUpperCase(); // Renamed
+            if (!pnrNumber) {
+                showMessage('Please enter a PNR Number.', false); // Renamed
+                currentBookingDetails.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const data = await fetchData(`/booking/${pnrNumber}`); // Renamed
+                currentBookingDetailsData = data;
+                displayBookingDetails(data);
+                showMessage(`PNR Number ${pnrNumber} found.`, true); // Renamed
+            } catch (error) {
+                currentBookingDetails.classList.add('hidden');
+                // Error message handled by fetchData
+            }
+        });
+
+        // Helper to display booking details
+        function displayBookingDetails(booking) {
+            displayPnrNumber.textContent = booking.pnr_number; // Renamed
+            displayPassengerName.textContent = booking.passenger_name;
+            displayEmail.textContent = booking.email;
+            displayGender.textContent = booking.gender;
+            displayDOB.textContent = booking.date_of_birth;
+            displayPhone.textContent = booking.phone_number;
+            displayTravelDate.textContent = booking.travel_date; // Display new field
+            displaySeats.textContent = booking.seats;
+            displayTotalDistance.textContent = booking.total_distance;
+            displayStatus.textContent = booking.status;
+
+            displayStatus.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800');
+            if (booking.status === 'CONFIRMED') {
+                displayStatus.classList.add('bg-green-100', 'text-green-800');
+            } else if (booking.status === 'CANCELLED') {
+                displayStatus.classList.add('bg-red-100', 'text-red-800');
+            }
+
+            renderFlightPath(displayFlightPath, booking.path);
+            currentBookingDetails.classList.remove('hidden');
+
+            // Set update form initial values
+            updateNameInput.value = booking.passenger_name;
+            updateEmailInput.value = booking.email;
+            updateGenderSelect.value = booking.gender;
+            updateDOBInput.value = booking.date_of_birth;
+            updatePhoneInput.value = booking.phone_number;
+            updateTravelDateInput.value = booking.travel_date; // Set new field for update
+
+
+            // Enable/disable buttons based on status
+            cancelBookingBtn.disabled = booking.status === 'CANCELLED';
+            toggleUpdateFormBtn.disabled = booking.status === 'CANCELLED';
+            updateForm.classList.add('hidden'); // Hide update form by default
+        }
+
+        // Cancel Booking
+        cancelBookingBtn.addEventListener('click', async () => {
+            if (!currentBookingDetailsData || !currentBookingDetailsData.pnr_number) { // Renamed
+                showMessage('No booking selected to cancel.', false);
+                return;
+            }
+            if (currentBookingDetailsData.status === 'CANCELLED') {
+                showMessage('This booking is already cancelled.', true);
+                return;
+            }
+
+            const confirmed = await customConfirm(`Are you sure you want to cancel booking ${currentBookingDetailsData.pnr_number}?`); // Renamed
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const data = await fetchData(`/booking/${currentBookingDetailsData.pnr_number}/cancel`, { // Renamed
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                currentBookingDetailsData = data.booking_details; // Update local state
+                displayBookingDetails(currentBookingDetailsData); // Re-render with new status
+                showMessage(data.message, true);
+            } catch (error) {
+                // Error message handled by fetchData
+            }
+        });
+
+        // Toggle Update Form
+        toggleUpdateFormBtn.addEventListener('click', () => {
+            if (currentBookingDetailsData && currentBookingDetailsData.status !== 'CANCELLED') {
+                updateForm.classList.toggle('hidden');
+            }
+        });
+
+        // Apply Update to Booking
+        applyUpdateBtn.addEventListener('click', async () => {
+            if (!currentBookingDetailsData || !currentBookingDetailsData.pnr_number) { // Renamed
+                showMessage('No booking selected to update.', false);
+                return;
+            }
+            if (currentBookingDetailsData.status === 'CANCELLED') {
+                showMessage('Cannot update a cancelled booking.', false);
+                return;
+            }
+
+            const newPassengerName = updateNameInput.value.trim();
+            const newEmail = updateEmailInput.value.trim();
+            const newGender = updateGenderSelect.value;
+            const newDateOfBirth = updateDOBInput.value;
+            const newPhoneNumber = updatePhoneInput.value.trim();
+            const newTravelDate = updateTravelDateInput.value; // New
+
+            // Client-side validation for update fields
+            if (newEmail && !isValidGmail(newEmail)) {
+                showMessage('Invalid email format for update. Please use a Gmail address.', false);
+                return;
+            }
+            if (newPhoneNumber && !isValidPhone(newPhoneNumber)) {
+                showMessage('Invalid phone number for update. Please enter a 10-digit number.', false);
+                return;
+            }
+            if (newDateOfBirth && !isValidDateFormat(newDateOfBirth)) {
+                showMessage('Invalid Date of Birth format for update. Please use YYYY-MM-DD.', false);
+                return;
+            }
+            if (newTravelDate && !isValidDateFormat(newTravelDate)) {
+                showMessage('Invalid Travel Date format for update. Please use YYYY-MM-DD.', false);
+                return;
+            }
+            // Check if travel date is in the future for update
+            if (newTravelDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const selectedTravelDate = new Date(newTravelDate);
+                selectedTravelDate.setHours(0, 0, 0, 0);
+                if (selectedTravelDate < today) {
+                    showMessage('Travel date cannot be in the past for update.', false);
+                    return;
+                }
+            }
+
+
+            // Only send fields that have changed or are explicitly provided for update
+            const updatePayload = {};
+            // Check for changes before adding to payload
+            if (newPassengerName !== currentBookingDetailsData.passenger_name) {
+                updatePayload.passenger_name = newPassengerName;
+            }
+            if (newEmail !== currentBookingDetailsData.email) {
+                updatePayload.email = newEmail;
+            }
+            if (newGender !== currentBookingDetailsData.gender) {
+                updatePayload.gender = newGender;
+            }
+            if (newDateOfBirth !== currentBookingDetailsData.date_of_birth) {
+                updatePayload.date_of_birth = newDateOfBirth;
+            }
+            if (newPhoneNumber !== currentBookingDetailsData.phone_number) {
+                updatePayload.phone_number = newPhoneNumber;
+            }
+            if (newTravelDate !== currentBookingDetailsData.travel_date) {
+                updatePayload.travel_date = newTravelDate;
+            }
+
+
+            if (Object.keys(updatePayload).length === 0) {
+                showMessage('No changes detected or supported fields for update.', false);
+                return;
+            }
+
+            try {
+                const data = await fetchData(`/booking/${currentBookingDetailsData.pnr_number}/update`, { // Renamed
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatePayload),
+                });
+                currentBookingDetailsData = data.booking_details || currentBookingDetailsData; // Update local state
+                displayBookingDetails(currentBookingDetailsData); // Re-render with new details
+                showMessage(data.message, true);
+                updateForm.classList.add('hidden'); // Hide form after update
+            } catch (error) {
+                // Error message handled by fetchData
+            }
+        });
+
+        // Initial view
+        showView('search');
+
+    </script>
+</body>
+</html>
